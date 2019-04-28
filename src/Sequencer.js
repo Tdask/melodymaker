@@ -1,26 +1,26 @@
 /* eslint-disable react/no-unused-state, react/no-array-index-key */
-import React, { Component } from 'react'
-import cx from 'classnames'
-import Synth from './Synth'
-import NOTES from './notes'
-import MNOTES from './mnotes'
-import * as mm from '@magenta/music'
+import React, { Component } from "react";
+import cx from "classnames";
+import Synth from "./Synth";
+import NOTES from "./notes";
+import MNOTES from "./mnotes";
+import * as mm from "@magenta/music";
 
 const melodyrnn = new mm.MusicRNN(
-  'https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn'
-)
+  "https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn"
+);
 // melodyrnn.initialize() //needs await within an async function
 
-const magentaPlayer = new mm.Player()
-let seedNotes = []
+const magentaPlayer = new mm.Player();
+let seedNotes = [];
 
 //let resultSeq = await melodyrnn.continueSequence(seedSeq, 10, 1.1, ['CM']) // needs to be within an async function
 
 const getNotesForOctave = octave =>
   Object.keys(NOTES).reduce((state, note) => {
-    if (note.split('').pop() === String(octave)) state[note] = NOTES[note]
-    return state
-  }, {})
+    if (note.split("").pop() === String(octave)) state[note] = NOTES[note];
+    return state;
+  }, {});
 
 const defaultPads = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -31,61 +31,61 @@ const defaultPads = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-]
+];
 
 // let lol = {isactive: 0,
 //   octave: {this.state.octave}
 // }
 
 function swapKeyVal(obj) {
-  let swapped = {}
+  let swapped = {};
   for (let key in obj) {
-    swapped[obj[key]] = key
+    swapped[obj[key]] = key;
   }
-  return swapped
+  return swapped;
 }
 
-let swappedNOTES = swapKeyVal(NOTES)
+let swappedNOTES = swapKeyVal(NOTES);
 
-let result = []
+let result = [];
 function recorder(note) {
   if (result.length < 8) {
-    result.push(note)
+    result.push(note);
   }
   if (result.length === 8) {
-    let count = 0
-    console.log('RESULT: ', result)
-    const inMidi = result.map(freq => swappedNOTES[freq])
-    const inPitch = inMidi.map(midi => MNOTES[midi])
-    console.log('IN PITCH: ', inPitch)
+    let count = 0;
+    console.log("RESULT: ", result);
+    const inMidi = result.map(freq => swappedNOTES[freq]);
+    const inPitch = inMidi.map(midi => MNOTES[midi]);
+    console.log("IN PITCH: ", inPitch);
     let notes = inPitch.map(pitch => {
       if (pitch) {
         return {
           pitch: pitch,
           quantizedStartStep: count,
           quantizedEndStep: ++count
-        }
+        };
       } else {
         return {
           pitch: -1,
           quantizedStartStep: count,
           quantizedEndStep: ++count
-        }
+        };
       }
-    })
+    });
 
     //get rid of rests represented by -1
-    seedNotes = notes.filter(note => note.pitch !== -1)
-    console.log('SEED notes: ', seedNotes)
+    seedNotes = notes.filter(note => note.pitch !== -1);
+    console.log("SEED notes: ", seedNotes);
     // return notes
   }
 }
 
 class Sequencer extends Component {
   constructor() {
-    super()
+    super();
     this.state = {
-      type: 'sine',
+      type: "sine",
       pads: defaultPads,
       bpm: 150,
       release: 100,
@@ -96,12 +96,13 @@ class Sequencer extends Component {
       delay: false,
       notes: getNotesForOctave(4),
       outOfOctave: []
-    }
+    };
 
-    this.generateSeq = this.generateSeq.bind(this)
-    this.newView = this.newView.bind(this)
-    this.togglePad = this.togglePad.bind(this)
-    this.clearGrid = this.clearGrid.bind(this)
+    this.generateSeq = this.generateSeq.bind(this);
+    this.newView = this.newView.bind(this);
+    this.togglePad = this.togglePad.bind(this);
+    this.clearGrid = this.clearGrid.bind(this);
+    this.mouseListener = this.mouseListener.bind(this);
   }
 
   changeRelease(release) {
@@ -110,25 +111,25 @@ class Sequencer extends Component {
         release
       },
       () => {
-        this.pause()
-        if (this.state.playing) this.play()
+        this.pause();
+        if (this.state.playing) this.play();
       }
-    )
+    );
   }
 
   changeBPM(bpm) {
-    if (bpm > 300 || bpm < 60) return
+    if (bpm > 300 || bpm < 60) return;
 
     this.setState(
       () => ({
         bpm
       }),
       () => {
-        this.pause()
+        this.pause();
 
-        if (this.state.playing) this.play()
+        if (this.state.playing) this.play();
       }
-    )
+    );
   }
 
   changeWaveType(type) {
@@ -137,11 +138,11 @@ class Sequencer extends Component {
         type
       }),
       () => {
-        this.pause()
+        this.pause();
 
-        if (this.state.playing) this.play()
+        if (this.state.playing) this.play();
       }
-    )
+    );
   }
 
   changeOctave(octave) {
@@ -151,47 +152,47 @@ class Sequencer extends Component {
         notes: getNotesForOctave(Number(octave))
       },
       () => {
-        this.pause()
+        this.pause();
 
-        if (this.state.playing) this.play()
+        if (this.state.playing) this.play();
       }
-    )
+    );
   }
 
   newView(resultSeq) {
     // clear current view to blank
-    const { notes } = this.state
-    console.log('NOTES: ', notes)
+    const { notes } = this.state;
+    console.log("NOTES: ", notes);
     this.setState({
       pads: defaultPads
-    })
-    const pitchLookup = swapKeyVal(MNOTES)
+    });
+    const pitchLookup = swapKeyVal(MNOTES);
     // console.log('HERE: ', Object.keys(notes)).map(note => note.slice(0, -1))
-    let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1))
-    const midiIndexObj = swapKeyVal(midiNoOctave)
+    let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
+    const midiIndexObj = swapKeyVal(midiNoOctave);
     // .map(key => notes[key])
-    console.log('midi idx obj inside newView: ', midiIndexObj)
+    console.log("midi idx obj inside newView: ", midiIndexObj);
     // const midiArray = swapKeyVal(this.state.notes)
     // console.log('MIDI ARRAY: ', midiArray)
     // console.log('this.state.notes', this.state.notes)
-    let nextView = defaultPads
+    let nextView = defaultPads;
 
-    console.log('RESULT SEQ: ', resultSeq)
-    let seqForGrid = Array(8).fill(null)
+    console.log("RESULT SEQ: ", resultSeq);
+    let seqForGrid = Array(8).fill(null);
     resultSeq.notes.forEach(
       note => (seqForGrid[note.quantizedStartStep] = note.pitch)
-    )
+    );
     for (let i = 0; i < this.state.pads.length; i++) {
-      const group = nextView[i]
+      const group = nextView[i];
       // console.log('GROUP, i: ', group, i)
-      console.log(seqForGrid[i])
+      console.log(seqForGrid[i]);
       if (seqForGrid[i] !== null) {
-        const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1)
+        const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
         // console.log('MIDI to Toggle: ')
-        let targetIdx = Number(midiIndexObj[midiToToggle])
+        let targetIdx = Number(midiIndexObj[midiToToggle]);
         // console.log('TARGET IDX: ', targetIdx)
-        group[targetIdx] = 1
-        console.log('GROUP AFTER: ', group)
+        group[targetIdx] = 1;
+        console.log("GROUP AFTER: ", group);
         // group.forEach((item, idx) => console.log('item[idx]: ', item[idx])
 
         // )
@@ -202,39 +203,39 @@ class Sequencer extends Component {
       //then we can call togglePad passing in current group and pad index
       // console.log(`${this.state.notes['C4']}`)
     }
-    console.log('nextViewFinal: ', nextView)
+    console.log("nextViewFinal: ", nextView);
     this.setState({
       pads: nextView
-    })
+    });
   }
 
   async generateSeq() {
-    console.log('state.notes ', this.state.notes)
+    console.log("state.notes ", this.state.notes);
     try {
       let seedSeq = {
         totalQuantizedSteps: 8,
         quantizationInfo: { stepsPerQuarter: 1 },
         notes: seedNotes
-      }
-      await melodyrnn.initialize()
-      let resultSeq = await melodyrnn.continueSequence(seedSeq, 8, 1.1)
-      console.log('RESULT? ', resultSeq)
+      };
+      await melodyrnn.initialize();
+      let resultSeq = await melodyrnn.continueSequence(seedSeq, 8, 1.1);
+      console.log("RESULT? ", resultSeq);
       //now we can call a helper function which resets the view to new sequence
-      this.newView(resultSeq)
+      this.newView(resultSeq);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
   play() {
-    this.synth = new Synth()
-    console.log('this.state.notes', this.state.notes)
-    const { bpm, notes, type, release, delay } = this.state
-    const notesArray = Object.keys(notes).map(key => notes[key])
-    console.log('NOTES ARRAY: ', notesArray)
+    this.synth = new Synth();
+    console.log("this.state.notes", this.state.notes);
+    const { bpm, notes, type, release, delay } = this.state;
+    const notesArray = Object.keys(notes).map(key => notes[key]);
+    console.log("NOTES ARRAY: ", notesArray);
     this.setState(() => ({
       playing: true
-    }))
+    }));
 
     this.interval = setInterval(() => {
       this.setState(
@@ -243,59 +244,64 @@ class Sequencer extends Component {
         }),
         () => {
           if (this.state.step === 0) {
-            result = []
-            seedNotes = []
+            result = [];
+            seedNotes = [];
           }
           const next = this.state.pads[this.state.step]
             .map((pad, i) => (pad === 1 ? notesArray[i] : null))
-            .filter(x => x)
+            .filter(x => x);
           // console.log('NEXT: ', next)
-          recorder(next)
+          recorder(next);
           this.synth.playNotes(next, {
             release,
             bpm,
             type,
             delay
-          })
+          });
         }
-      )
-    }, (60 * 1000) / this.state.bpm / 2)
+      );
+    }, (60 * 1000) / this.state.bpm / 2);
   }
 
   pause() {
     this.setState(() => ({
       playing: false,
       step: 0
-    }))
+    }));
 
-    clearInterval(this.interval)
+    clearInterval(this.interval);
   }
 
   clearGrid() {
     this.setState({
       pads: defaultPads
-    })
-    seedNotes = []
-    result = []
+    });
+    seedNotes = [];
+    result = [];
   }
 
   togglePad(group, pad) {
     // console.log('GROUP: ', group, 'PAD: ', pad)
     this.setState(state => {
-      const clonedPads = state.pads.slice(0)
+      const clonedPads = state.pads.slice(0);
       // console.log('CLONED PADS[group]: ', clonedPads[group])
-      const padState = clonedPads[group][pad]
+      const padState = clonedPads[group][pad];
 
-      clonedPads[group] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      clonedPads[group][pad] = padState === 1 ? 0 : 1
+      clonedPads[group] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      clonedPads[group][pad] = padState === 1 ? 0 : 1;
       return {
         pads: clonedPads
-      }
-    })
+      };
+    });
   }
 
+  mouseListener(event) {
+    console.log(event.target.onMouseDown);
+    // event.target.addEventListener("mousedown", console.log("YO"));
+    event.target.onClick = () => console.log("you clicked!");
+  }
   render() {
-    const { pads, step, notes } = this.state
+    const { pads, step, notes } = this.state;
 
     return (
       <React.StrictMode>
@@ -308,10 +314,10 @@ class Sequencer extends Component {
             <div className="buttons">
               <button
                 type="button"
-                className={this.state.playing ? 'active' : ''}
+                className={this.state.playing ? "active" : ""}
                 onClick={() => {
-                  if (this.state.playing) this.pause()
-                  else this.play()
+                  if (this.state.playing) this.pause();
+                  else this.play();
                 }}
               >
                 Play
@@ -423,36 +429,25 @@ class Sequencer extends Component {
                   {group.map((pad, i) => (
                     <div
                       key={`pad-group-${i}`}
-                      className={cx('pad', {
+                      className={cx("pad", {
                         active: groupIndex === step,
                         on: pad === 1
                       })}
                       onClick={() => {
-                        this.togglePad(groupIndex, i)
+                        // this.mouseListener(event);
+                        this.togglePad(groupIndex, i);
                       }}
+                      onMouseDown={event => true}
                     />
                   ))}
                 </div>
               ))}
             </div>
           </div>
-
-          {/* <footer>
-            Made by{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href="https://markmurray.co"
-            >
-              Mark Murray
-            </a>
-            . View the source on{' '}
-            <a href="https://github.com/markmur/react-sequencer">Github</a>.
-          </footer> */}
         </div>
       </React.StrictMode>
-    )
+    );
   }
 }
 
-export default Sequencer
+export default Sequencer;
