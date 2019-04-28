@@ -1,20 +1,25 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto');
+@import url("https://fonts.googleapis.com/css?family=Roboto");
 
 $dark: lighten(#121214, 5%);
 $steps: 10;
 $primary: #0087ff;
 $secondary: #c5cf34;
-$controller_size: 400px;
+$controller_size: 500px;
 $radius: 1px;
 
 body {
   background: $dark;
-  font-family: 'Helvetica Neue';
+  font-family: "Helvetica Neue";
   display: flex;
   flex-direction: column;
   height: 100vh;
   padding-top: 1em;
   text-align: center;
+}
+
+.bottombtn {
+  color: white;
+  size: small;
 }
 
 .flex {
@@ -29,7 +34,7 @@ h1 {
   font-weight: lighter;
   letter-spacing: 2px;
   font-size: 2em;
-  font-family: 'Allan', 'Helvetica Neue';
+  font-family: "Allan", "Helvetica Neue";
 }
 
 .Sequencer {
@@ -55,10 +60,10 @@ h1 {
   display: flex;
   padding: 0.35em 0 0.5em;
 
-  button,
   select,
-  input {
-    margin: 5px;
+  // input,
+  button {
+    margin: 3px;
     outline: none;
     background: lighten($dark, 10%);
     color: white;

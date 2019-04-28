@@ -22,6 +22,11 @@ const getNotesForOctave = octave =>
     return state;
   }, {});
 
+const dummyNotes = [
+  { pitch: 72, quantizedStartStep: 0, quantizedEndStep: 2 },
+  { pitch: 76, quantizedStartStep: 2, quantizedEndStep: 3 },
+  { pitch: 79, quantizedStartStep: 3, quantizedEndStep: 4 }
+];
 const defaultPads = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -32,6 +37,29 @@ const defaultPads = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
+
+const defaultState = {
+  type: "sine",
+  pads: [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  bpm: 150,
+  release: 100,
+  step: 0,
+  steps: 8,
+  playing: false,
+  octave: 4,
+  delay: false,
+  notes: getNotesForOctave(4),
+  outOfOctave: []
+};
 
 // let lol = {isactive: 0,
 //   octave: {this.state.octave}
@@ -84,25 +112,14 @@ function recorder(note) {
 class Sequencer extends Component {
   constructor() {
     super();
-    this.state = {
-      type: "sine",
-      pads: defaultPads,
-      bpm: 150,
-      release: 100,
-      step: 0,
-      steps: 8,
-      playing: false,
-      octave: 4,
-      delay: false,
-      notes: getNotesForOctave(4),
-      outOfOctave: []
-    };
+    this.state = defaultState;
 
     this.generateSeq = this.generateSeq.bind(this);
     this.newView = this.newView.bind(this);
     this.togglePad = this.togglePad.bind(this);
     this.clearGrid = this.clearGrid.bind(this);
     this.mouseListener = this.mouseListener.bind(this);
+    this.startUp = this.startUp.bind(this);
   }
 
   changeRelease(release) {
@@ -162,37 +179,58 @@ class Sequencer extends Component {
   newView(resultSeq) {
     // clear current view to blank
     const { notes } = this.state;
-    console.log("NOTES: ", notes);
+    // console.log("NOTES: ", notes);
+    console.log("default pads right before setting state: ", defaultPads);
     this.setState({
-      pads: defaultPads
+      pads: [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      ]
     });
+    console.log("state.pads after clearing: ", this.state.pads);
     const pitchLookup = swapKeyVal(MNOTES);
-    // console.log('HERE: ', Object.keys(notes)).map(note => note.slice(0, -1))
     let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
     const midiIndexObj = swapKeyVal(midiNoOctave);
-    // .map(key => notes[key])
     console.log("midi idx obj inside newView: ", midiIndexObj);
     // const midiArray = swapKeyVal(this.state.notes)
     // console.log('MIDI ARRAY: ', midiArray)
     // console.log('this.state.notes', this.state.notes)
-    let nextView = defaultPads;
+    let nextView = [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+    console.log("NEXT VIEW after declaration: ", nextView);
+    // console.log("RESULT SEQ: ", resultSeq);
 
-    console.log("RESULT SEQ: ", resultSeq);
+    //make a new sequence that can be triggered in time by the steps
     let seqForGrid = Array(8).fill(null);
     resultSeq.notes.forEach(
       note => (seqForGrid[note.quantizedStartStep] = note.pitch)
     );
     for (let i = 0; i < this.state.pads.length; i++) {
-      const group = nextView[i];
-      // console.log('GROUP, i: ', group, i)
-      console.log(seqForGrid[i]);
+      let group = nextView[i];
+
+      console.log("GROUP: ", group);
+      // console.log(seqForGrid[i]);
       if (seqForGrid[i] !== null) {
         const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
         // console.log('MIDI to Toggle: ')
         let targetIdx = Number(midiIndexObj[midiToToggle]);
         // console.log('TARGET IDX: ', targetIdx)
         group[targetIdx] = 1;
-        console.log("GROUP AFTER: ", group);
+        console.log("NEXTVIEW AFTER: ", nextView);
         // group.forEach((item, idx) => console.log('item[idx]: ', item[idx])
 
         // )
@@ -217,7 +255,6 @@ class Sequencer extends Component {
         quantizationInfo: { stepsPerQuarter: 1 },
         notes: seedNotes
       };
-      await melodyrnn.initialize();
       let resultSeq = await melodyrnn.continueSequence(seedSeq, 8, 1.1);
       console.log("RESULT? ", resultSeq);
       //now we can call a helper function which resets the view to new sequence
@@ -273,8 +310,9 @@ class Sequencer extends Component {
   }
 
   clearGrid() {
+    console.log("inside of clearGrid: ", defaultState);
     this.setState({
-      pads: defaultPads
+      ...defaultState
     });
     seedNotes = [];
     result = [];
@@ -300,6 +338,20 @@ class Sequencer extends Component {
     // event.target.addEventListener("mousedown", console.log("YO"));
     event.target.onClick = () => console.log("you clicked!");
   }
+  async startUp() {
+    try {
+      await melodyrnn.initialize();
+      let dummySeq = {
+        totalQuantizedSteps: 4,
+        quantizationInfo: { stepsPerQuarter: 1 },
+        notes: dummyNotes
+      };
+      await melodyrnn.continueSequence(dummySeq, 8, 1.1);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   render() {
     const { pads, step, notes } = this.state;
 
@@ -307,7 +359,7 @@ class Sequencer extends Component {
       <React.StrictMode>
         <div className="container">
           <header>
-            <h1>Neural Melody</h1>
+            <h1>Neural Melody Maker</h1>
           </header>
 
           <div className="Sequencer">
@@ -322,18 +374,6 @@ class Sequencer extends Component {
               >
                 Play
               </button>
-
-              <div className="select-wrapper">
-                <span>BPM</span>
-                <input
-                  type="number"
-                  min="80"
-                  max="300"
-                  step="1"
-                  defaultValue={this.state.bpm}
-                  onChange={e => this.changeBPM(e.target.value)}
-                />
-              </div>
 
               {/* <div className="select-wrapper">
                 <span>Wave</span>
@@ -351,29 +391,12 @@ class Sequencer extends Component {
               </div> */}
 
               <div className="select-wrapper">
-                <span>Octave</span>
-                <select
-                  value={this.state.octave}
-                  data-label="octave"
-                  className="octave"
-                  onChange={e => this.changeOctave(e.target.value)}
-                >
-                  <option>1</option>
-                  <option>2</option>
-                  <option>3</option>
-                  <option>4</option>
-                  <option>5</option>
-                  <option>6</option>
-                  <option>7</option>
-                </select>
-              </div>
-              <div className="select-wrapper">
                 <button
                   //  type="button"
                   className="buttons"
                   onClick={this.generateSeq}
                 >
-                  Generate Melody
+                  Build Melody
                 </button>
               </div>
 
@@ -381,6 +404,18 @@ class Sequencer extends Component {
                 <button className="buttons" onClick={this.clearGrid}>
                   Clear
                 </button>
+              </div>
+
+              <div className="select-wrapper buttons select">
+                <span>Heat</span>
+                <input
+                  type="number"
+                  min=".5"
+                  max="3"
+                  step=".2"
+                  defaultValue="1.1"
+                  // onChange={e => this.changeBPM(e.target.value)}
+                />
               </div>
 
               {/* <div className="select-wrapper">
@@ -442,6 +477,41 @@ class Sequencer extends Component {
                   ))}
                 </div>
               ))}
+            </div>
+            <div className="select-wrapper buttons">
+              <button onClick={this.startUp}>initialize</button>
+            </div>
+            <br />
+            <br />
+            <br />
+            <br />
+            <div className="select-wrapper bottombtn ">
+              <span>BPM</span>
+              <input
+                type="number"
+                min="80"
+                max="300"
+                step="1"
+                defaultValue={this.state.bpm}
+                onChange={e => this.changeBPM(e.target.value)}
+              />
+              <div className="select-wrapper">
+                <span>Octave</span>
+                <select
+                  value={this.state.octave}
+                  data-label="octave"
+                  className="octave"
+                  onChange={e => this.changeOctave(e.target.value)}
+                >
+                  <option>1</option>
+                  <option>2</option>
+                  <option>3</option>
+                  <option>4</option>
+                  <option>5</option>
+                  <option>6</option>
+                  <option>7</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
