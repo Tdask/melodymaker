@@ -6,9 +6,10 @@ $primary: #0087ff;
 $secondary: #c5cf34;
 $controller_size: 500px;
 $radius: 1px;
+$mint: #80cbc4;
 
 body {
-  background: $dark;
+  background: lighten($dark, 37%);
   font-family: "Helvetica Neue";
   display: flex;
   flex-direction: column;
@@ -31,7 +32,7 @@ h1 {
   margin-top: 0;
   color: white;
   opacity: 0.3;
-  font-weight: lighter;
+  font-weight: bold;
   letter-spacing: 2px;
   font-size: 2em;
   font-family: "Allan", "Helvetica Neue";
@@ -61,7 +62,7 @@ h1 {
   padding: 0.35em 0 0.5em;
 
   select,
-  // input,
+  input,
   button {
     margin: 3px;
     outline: none;
@@ -76,7 +77,7 @@ h1 {
     border: 2px solid transparent;
 
     &.active {
-      color: $primary;
+      color: $secondary;
       // border: 2px solid $primary;
     }
   }
