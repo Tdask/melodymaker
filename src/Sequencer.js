@@ -27,7 +27,7 @@ const dummyNotes = [
   { pitch: 76, quantizedStartStep: 2, quantizedEndStep: 3 },
   { pitch: 79, quantizedStartStep: 3, quantizedEndStep: 4 }
 ];
-const defaultPads = [
+let defaultPads = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -182,16 +182,7 @@ class Sequencer extends Component {
     // console.log("NOTES: ", notes);
     console.log("default pads right before setting state: ", defaultPads);
     this.setState({
-      pads: [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      ]
+      pads: defaultPads
     });
     console.log("state.pads after clearing: ", this.state.pads);
     const pitchLookup = swapKeyVal(MNOTES);
@@ -201,16 +192,7 @@ class Sequencer extends Component {
     // const midiArray = swapKeyVal(this.state.notes)
     // console.log('MIDI ARRAY: ', midiArray)
     // console.log('this.state.notes', this.state.notes)
-    let nextView = [
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ];
+    let nextView = defaultPads;
     console.log("NEXT VIEW after declaration: ", nextView);
     // console.log("RESULT SEQ: ", resultSeq);
 
@@ -219,12 +201,18 @@ class Sequencer extends Component {
     resultSeq.notes.forEach(
       note => (seqForGrid[note.quantizedStartStep] = note.pitch)
     );
+    console.log("SEQ FOR GRID: ", seqForGrid);
+    //iterate through nextView to update the new midi note. if there's a note toggled in the group that is taking a new note we want to untoggle it first before toggling new note. otherwise if the group is empty we can just toggle new note.
     for (let i = 0; i < this.state.pads.length; i++) {
       let group = nextView[i];
 
       console.log("GROUP: ", group);
       // console.log(seqForGrid[i]);
       if (seqForGrid[i] !== null) {
+        if (group.includes(1)) {
+          console.log("group includes 1");
+          // group = [(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)];
+        }
         const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
         // console.log('MIDI to Toggle: ')
         let targetIdx = Number(midiIndexObj[midiToToggle]);
@@ -287,7 +275,7 @@ class Sequencer extends Component {
           const next = this.state.pads[this.state.step]
             .map((pad, i) => (pad === 1 ? notesArray[i] : null))
             .filter(x => x);
-          // console.log('NEXT: ', next)
+          console.log("NEXT: ", next);
           recorder(next);
           this.synth.playNotes(next, {
             release,
@@ -316,13 +304,24 @@ class Sequencer extends Component {
     });
     seedNotes = [];
     result = [];
+    defaultPads = [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ];
   }
 
   togglePad(group, pad) {
-    // console.log('GROUP: ', group, 'PAD: ', pad)
+    console.log("inside of togglePad: ", "GROUP: ", group, "PAD: ", pad);
+
     this.setState(state => {
       const clonedPads = state.pads.slice(0);
-      // console.log('CLONED PADS[group]: ', clonedPads[group])
+      console.log("CLONED PADS[group]: ", clonedPads[group]);
       const padState = clonedPads[group][pad];
 
       clonedPads[group] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -337,6 +336,10 @@ class Sequencer extends Component {
     console.log(event.target.onMouseDown);
     // event.target.addEventListener("mousedown", console.log("YO"));
     event.target.onClick = () => console.log("you clicked!");
+  }
+
+  componentWillUnmount() {
+    if (this.interval) clearInterval(this.interval);
   }
   async startUp() {
     try {
