@@ -55,7 +55,8 @@ const defaultState = {
   octave: 4,
   delay: false,
   notes: getNotesForOctave(4),
-  outOfOctave: []
+  outOfOctave: [],
+  isInitialized: false
 };
 
 function swapKeyVal(obj) {
@@ -117,6 +118,11 @@ class Sequencer extends Component {
     this.startUp = this.startUp.bind(this);
     this.handleHeat = this.handleHeat.bind(this);
     this.handleStop = this.handleStop.bind(this);
+    this.showDefault = this.showDefault.bind(this);
+  }
+
+  componentDidMount() {
+    this.startUp();
   }
 
   changeRelease(release) {
@@ -176,10 +182,12 @@ class Sequencer extends Component {
   newView(resultSeq) {
     // clear current view to blank
     const { notes } = this.state;
-    // console.log("NOTES: ", notes);
-    // console.log("default pads right before setting state: ", defaultPads);
+    console.log("NOTES: ", notes);
+    console.log("default pads right before setting state: ", defaultPads);
+    //above console log shows us that defaultPads is essentially what the next view of built melody is going to be, including the repeated old notes. if we can get it so that it is able to only show newest notes than we good.
+    //we don't want to only show newest notes, we want to show old notes only when no new note has been added to that group -- otherwise if there is another note added to group we remove that note and only show the newest one.
     this.setState({
-      pads: defaultPads
+      pads: defaultPads.slice()
     });
     // console.log("state.pads after clearing: ", this.state.pads);
     const pitchLookup = swapKeyVal(MNOTES);
@@ -206,7 +214,7 @@ class Sequencer extends Component {
           // group = [(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)];
         }
         const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
-        // console.log('MIDI to Toggle: ')
+        console.log("MIDI to Toggle: ", midiToToggle);
         let targetIdx = Number(midiIndexObj[midiToToggle]);
         // console.log('TARGET IDX: ', targetIdx)
         group[targetIdx] = 1;
@@ -272,6 +280,10 @@ class Sequencer extends Component {
     }, (60 * 1000) / this.state.bpm / 2);
   }
 
+  showDefault() {
+    console.log("the defaultPads are: ", defaultPads);
+  }
+
   pause() {
     this.setState(() => ({
       playing: false,
@@ -285,7 +297,8 @@ class Sequencer extends Component {
     console.log("inside of clearGrid: ", defaultState);
 
     this.setState({
-      ...defaultState
+      ...defaultState,
+      isInitialized: true
     });
     seedNotes = [];
     result = [];
@@ -338,6 +351,9 @@ class Sequencer extends Component {
   async startUp() {
     try {
       await melodyrnn.initialize();
+      this.setState({
+        isInitialized: true
+      });
       let dummySeq = {
         totalQuantizedSteps: 4,
         quantizationInfo: { stepsPerQuarter: 1 },
@@ -350,9 +366,9 @@ class Sequencer extends Component {
   }
 
   render() {
-    const { pads, step, notes } = this.state;
+    const { pads, step, notes, isInitialized } = this.state;
 
-    return (
+    return isInitialized ? (
       <React.StrictMode>
         <div className="container">
           <header>
@@ -500,7 +516,6 @@ class Sequencer extends Component {
             </div>
             <br />
             <div className="select-wrapper buttons">
-              <button onClick={this.startUp}>initialize</button>
               <div className="select-wrapper bottombtn">
                 <span>Octave</span>
                 <select
@@ -522,11 +537,14 @@ class Sequencer extends Component {
                 <button className="buttons" onClick={this.handleStop}>
                   Stop!
                 </button>
+                <button onClick={this.showDefault}>defaultPads</button>
               </div>
             </div>
           </div>
         </div>
       </React.StrictMode>
+    ) : (
+      <h2 className="loading">initializing...</h2>
     );
   }
 }
