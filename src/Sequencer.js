@@ -62,16 +62,14 @@ let swappedNOTES = swapKeyVal(NOTES);
 
 let result = [];
 function recorder(note) {
-  // console.log("NOTE: ", note);
   if (result.length < 8) {
     result.push(note[0]);
   }
   if (result.length === 8) {
     let count = 0;
-    console.log("RESULT: ", result);
+    // console.log("RESULT: ", result);
     const inMidi = result.map(freq => swappedNOTES[freq]);
     const inPitch = inMidi.map(midi => MNOTES[midi]);
-    // console.log("IN PITCH: ", inPitch);
     let notes = inPitch.map(pitch => {
       if (pitch) {
         return {
@@ -90,7 +88,6 @@ function recorder(note) {
 
     //get rid of rests represented by -1
     seedNotes = notes.filter(note => note.pitch !== -1);
-    // console.log("SEED notes: ", seedNotes);
     result = [];
   }
 }
@@ -110,6 +107,7 @@ class Sequencer extends Component {
     this.handleHeat = this.handleHeat.bind(this);
     this.handleStop = this.handleStop.bind(this);
     this.showDefault = this.showDefault.bind(this);
+    this.handleMouseDown = this.handleMouseDown.bind(this);
   }
 
   componentDidMount() {
@@ -174,52 +172,30 @@ class Sequencer extends Component {
     // clear current view to blank
     console.log("RESULTSEQ: ", resultSeq);
     const { notes } = this.state;
-    // console.log("NOTES: ", notes);
-    // console.log("default pads right before setting state: ", defaultPads);
-    //above console log shows us that defaultPads is essentially what the next view of built melody is going to be, including the repeated old notes. if we can get it so that it is able to only show newest notes than we good.
-    //we don't want to only show newest notes, we want to show old notes only when no new note has been added to that group -- otherwise if there is another note added to group we remove that note and only show the newest one.
-    // this.setState({
-    //   pads: defaultPads.slice()
-    // });
-    // console.log("state.pads after clearing: ", this.state.pads);
     const pitchLookup = swapKeyVal(MNOTES);
     let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
     const midiIndexObj = swapKeyVal(midiNoOctave);
-    // console.log("midi idx obj inside newView: ", midiIndexObj);
     let nextView = this.state.pads.slice();
-    // console.log("NEXT VIEW after declaration: ", nextView);
-    // console.log("RESULT SEQ: ", resultSeq);
 
     //make a new sequence that can be triggered in time by the steps
     let seqForGrid = Array(8).fill(null);
     resultSeq.notes.forEach(
       note => (seqForGrid[note.quantizedStartStep] = note.pitch)
     );
-    console.log("SequenceForGrid: ", seqForGrid);
-    //attempting to iterate through nextView to update the new midi note. if there's a note toggled in the group that is taking a new note we want to untoggle it first before toggling new note. otherwise if the group is empty we can just toggle new note.
     for (let i = 0; i < this.state.pads.length; i++) {
       let group = nextView[i];
-
-      console.log("GROUP: ", group);
       if (seqForGrid[i] !== null) {
         if (group.includes(1)) {
-          console.log("group includes 1");
-          // group = [(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)];
         }
         const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
-        console.log("MIDI to Toggle: ", midiToToggle);
+        // console.log("MIDI to Toggle: ", midiToToggle);
         let targetIdx = Number(midiIndexObj[midiToToggle]);
-        console.log("TARGET IDX: ", targetIdx);
-        //here instead of setting the group to one directly, going to try calling togglePad on it. so commenting out the setState here as well.
-        // group[targetIdx] = 1;
-        // console.log("i: ", i);
+        // console.log("TARGET IDX: ", targetIdx);
+
+        //calling toggle
         this.togglePad(i, targetIdx);
       }
     }
-    // console.log("nextViewFinal: ", nextView);
-    // this.setState({
-    //   pads: nextView
-    // });
   }
 
   async generateSeq() {
@@ -234,8 +210,7 @@ class Sequencer extends Component {
         8,
         Number(this.state.heat)
       );
-      // console.log("RESULT? ", resultSeq);
-      //now we can call a helper function which resets the view to new sequence
+      //now we call newView function which sets the view to new sequence
       this.newView(resultSeq);
     } catch (error) {
       console.log(error);
@@ -246,7 +221,6 @@ class Sequencer extends Component {
     this.synth = new Synth();
     const { bpm, notes, type, release, delay } = this.state;
     const notesArray = Object.keys(notes).map(key => notes[key]);
-    // console.log("NOTES ARRAY: ", notesArray);
     this.setState(() => ({
       playing: true
     }));
@@ -290,8 +264,6 @@ class Sequencer extends Component {
   }
 
   clearGrid() {
-    console.log("inside of clearGrid: ", defaultState);
-
     this.setState({
       ...defaultState,
       isInitialized: true
@@ -310,13 +282,10 @@ class Sequencer extends Component {
     // ];
   }
 
-  togglePad(group, pad) {
+  togglePad(group, pad, event) {
     console.log("inside of togglePad: ", "GROUP: ", group, "PAD: ", pad);
-
     this.setState(state => {
       const clonedPads = state.pads.slice(0);
-      console.log("CLONEDPADS: ", clonedPads);
-      console.log("CLONED PADS[group]: ", clonedPads[group]);
       const padState = clonedPads[group][pad];
 
       clonedPads[group] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -343,6 +312,10 @@ class Sequencer extends Component {
       playing: false
     });
     clearInterval(this.interval);
+  }
+
+  handleMouseDown(event) {
+    console.log("mouse is down", event.target);
   }
 
   async startUp() {
@@ -491,7 +464,10 @@ class Sequencer extends Component {
                 ))}
             </ul>
 
-            <div className="flex">
+            <div
+              className="flex"
+              onMouseDown={event => this.handleMouseDown(event)}
+            >
               {pads.map((group, groupIndex) => (
                 <div key={`pad-${groupIndex}`} className="pads">
                   {group.map((pad, i) => (
@@ -501,11 +477,10 @@ class Sequencer extends Component {
                         active: groupIndex === step,
                         on: pad === 1
                       })}
-                      onClick={() => {
+                      onClick={event => {
                         // this.mouseListener(event);
-                        this.togglePad(groupIndex, i);
+                        this.togglePad(groupIndex, i, event);
                       }}
-                      onMouseDown={event => true}
                     />
                   ))}
                 </div>
