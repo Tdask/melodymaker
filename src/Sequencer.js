@@ -107,7 +107,6 @@ class Sequencer extends Component {
     this.handleHeat = this.handleHeat.bind(this);
     this.handleStop = this.handleStop.bind(this);
     this.showDefault = this.showDefault.bind(this);
-    this.handleMouseDown = this.handleMouseDown.bind(this);
   }
 
   componentDidMount() {
@@ -314,10 +313,6 @@ class Sequencer extends Component {
     clearInterval(this.interval);
   }
 
-  handleMouseDown(event) {
-    console.log("mouse is down", event.target);
-  }
-
   async startUp() {
     try {
       await melodyrnn.initialize();
@@ -464,10 +459,7 @@ class Sequencer extends Component {
                 ))}
             </ul>
 
-            <div
-              className="flex"
-              onMouseDown={event => this.handleMouseDown(event)}
-            >
+            <div className="flex">
               {pads.map((group, groupIndex) => (
                 <div key={`pad-${groupIndex}`} className="pads">
                   {group.map((pad, i) => (
