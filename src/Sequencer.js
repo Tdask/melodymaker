@@ -10,7 +10,6 @@ const melodyrnn = new mm.MusicRNN(
   "https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn"
 );
 
-const magentaPlayer = new mm.Player();
 let seedNotes = [];
 
 const getNotesForOctave = octave =>
@@ -113,37 +112,12 @@ class Sequencer extends Component {
     this.startUp();
   }
 
-  changeRelease(release) {
-    this.setState(
-      {
-        release
-      },
-      () => {
-        this.pause();
-        if (this.state.playing) this.play();
-      }
-    );
-  }
-
   changeBPM(bpm) {
     if (bpm > 300 || bpm < 60) return;
 
     this.setState(
       () => ({
         bpm
-      }),
-      () => {
-        this.pause();
-
-        if (this.state.playing) this.play();
-      }
-    );
-  }
-
-  changeWaveType(type) {
-    this.setState(
-      () => ({
-        type
       }),
       () => {
         this.pause();
@@ -169,7 +143,7 @@ class Sequencer extends Component {
 
   newView(resultSeq) {
     // clear current view to blank
-    console.log("RESULTSEQ: ", resultSeq);
+    // console.log("RESULTSEQ: ", resultSeq);
     const { notes } = this.state;
     const pitchLookup = swapKeyVal(MNOTES);
     let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
@@ -264,25 +238,13 @@ class Sequencer extends Component {
 
   clearGrid() {
     this.setState({
-      ...defaultState,
-      isInitialized: true
+      pads: defaultPads
     });
     seedNotes = [];
     result = [];
-    // defaultPads = [
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    //   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    // ];
   }
 
   togglePad(group, pad, event) {
-    console.log("inside of togglePad: ", "GROUP: ", group, "PAD: ", pad);
     this.setState(state => {
       const clonedPads = state.pads.slice(0);
       const padState = clonedPads[group][pad];
@@ -300,7 +262,6 @@ class Sequencer extends Component {
   }
 
   handleHeat(event) {
-    console.log("you select heat of: ", event);
     this.setState({
       heat: event
     });
@@ -501,7 +462,6 @@ class Sequencer extends Component {
                 <button className="buttons" onClick={this.handleStop}>
                   Stop!
                 </button>
-                <button onClick={this.showDefault}>defaultPads</button>
               </div>
             </div>
           </div>
