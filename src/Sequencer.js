@@ -300,9 +300,7 @@ class Sequencer extends Component {
     ];
   }
 
-  togglePad(group, pad) {
-    // console.log("inside of togglePad: ", "GROUP: ", group, "PAD: ", pad);
-
+  togglePad(group, pad, event) {
     this.setState(state => {
       const clonedPads = state.pads.slice(0);
       // console.log("CLONED PADS[group]: ", clonedPads[group]);
@@ -333,6 +331,12 @@ class Sequencer extends Component {
     });
     clearInterval(this.interval);
   }
+
+
+  handleMouseDown(event) {
+    // console.log("mouse is down", event.target);
+  }
+
 
   async startUp() {
     try {
