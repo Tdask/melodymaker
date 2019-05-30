@@ -10,7 +10,6 @@ const melodyrnn = new mm.MusicRNN(
   "https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn"
 );
 
-const magentaPlayer = new mm.Player();
 let seedNotes = [];
 
 const getNotesForOctave = octave =>
@@ -509,7 +508,6 @@ class Sequencer extends Component {
                 <button className="buttons" onClick={this.handleStop}>
                   Stop!
                 </button>
-                <button onClick={this.showDefault}>defaultPads</button>
               </div>
             </div>
           </div>
