@@ -2,73 +2,28 @@
 import React, { Component } from "react";
 import cx from "classnames";
 import Synth from "./Synth";
-import NOTES from "./notes";
 import MNOTES from "./mnotes";
 import * as mm from "@magenta/music";
-
-const melodyrnn = new mm.MusicRNN(
-  "https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn"
-);
-
-let seedNotes = [];
-
-const getNotesForOctave = octave =>
-  Object.keys(NOTES).reduce((state, note) => {
-    if (note.split("").pop() === String(octave)) state[note] = NOTES[note];
-    return state;
-  }, {});
-
-const dummyNotes = [
-  { pitch: 72, quantizedStartStep: 0, quantizedEndStep: 2 },
-  { pitch: 76, quantizedStartStep: 2, quantizedEndStep: 3 },
-  { pitch: 79, quantizedStartStep: 3, quantizedEndStep: 4 }
-];
-const defaultPads = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-];
-
-const defaultState = {
-  type: "sine",
-  pads: defaultPads,
-  bpm: 150,
-  release: 100,
-  step: 0,
-  steps: 8,
-  playing: false,
-  octave: 4,
-  delay: false,
-  notes: getNotesForOctave(4),
-  outOfOctave: [],
-  isInitialized: false
-};
-
-function swapKeyVal(obj) {
-  let swapped = {};
-  for (let key in obj) {
-    swapped[obj[key]] = key;
-  }
-  return swapped;
-}
-
-let swappedNOTES = swapKeyVal(NOTES);
+import {
+  dummyNotes,
+  defaultPads,
+  defaultState,
+  swapKeyVal,
+  getNotesForOctave,
+  swappedNOTES
+} from "./helpers";
 
 let result = [];
+let seedNotes = [];
 function recorder(note) {
   if (result.length < 8) {
     result.push(note[0]);
   }
   if (result.length === 8) {
     let count = 0;
-    // console.log("RESULT: ", result);
-    const inMidi = result.map(freq => swappedNOTES[freq]);
-    const inPitch = inMidi.map(midi => MNOTES[midi]);
+    const inPitch = result
+      .map(freq => swappedNOTES[freq])
+      .map(midi => MNOTES[midi]);
     let notes = inPitch.map(pitch => {
       if (pitch) {
         return {
@@ -85,11 +40,15 @@ function recorder(note) {
       }
     });
 
-    //get rid of rests represented by -1
+    //get rid of rests represented by -1.
     seedNotes = notes.filter(note => note.pitch !== -1);
     result = [];
   }
 }
+
+const melodyrnn = new mm.MusicRNN(
+  "https://storage.googleapis.com/magentadata/js/checkpoints/music_rnn/melody_rnn"
+);
 
 class Sequencer extends Component {
   constructor() {
@@ -105,7 +64,6 @@ class Sequencer extends Component {
     this.startUp = this.startUp.bind(this);
     this.handleHeat = this.handleHeat.bind(this);
     this.handleStop = this.handleStop.bind(this);
-    this.showDefault = this.showDefault.bind(this);
   }
 
   componentDidMount() {
@@ -142,8 +100,6 @@ class Sequencer extends Component {
   }
 
   newView(resultSeq) {
-    // clear current view to blank
-    // console.log("RESULTSEQ: ", resultSeq);
     const { notes } = this.state;
     const pitchLookup = swapKeyVal(MNOTES);
     let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
@@ -161,9 +117,7 @@ class Sequencer extends Component {
         if (group.includes(1)) {
         }
         const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
-        // console.log("MIDI to Toggle: ", midiToToggle);
         let targetIdx = Number(midiIndexObj[midiToToggle]);
-        // console.log("TARGET IDX: ", targetIdx);
 
         //calling toggle
         this.togglePad(i, targetIdx);
@@ -223,10 +177,6 @@ class Sequencer extends Component {
     }, (60 * 1000) / this.state.bpm / 2);
   }
 
-  showDefault() {
-    console.log("the defaultPads are: ", defaultPads);
-  }
-
   pause() {
     this.setState(() => ({
       playing: false,
@@ -244,7 +194,7 @@ class Sequencer extends Component {
     result = [];
   }
 
-  togglePad(group, pad, event) {
+  togglePad(group, pad) {
     this.setState(state => {
       const clonedPads = state.pads.slice(0);
       const padState = clonedPads[group][pad];
@@ -280,6 +230,7 @@ class Sequencer extends Component {
       this.setState({
         isInitialized: true
       });
+      //priming the model to prevent random first output
       let dummySeq = {
         totalQuantizedSteps: 4,
         quantizationInfo: { stepsPerQuarter: 1 },
@@ -314,27 +265,8 @@ class Sequencer extends Component {
                 Play
               </button>
 
-              {/* <div className="select-wrapper">
-                <span>Wave</span>
-                <select
-                  value={this.state.type}
-                  data-label="wave"
-                  className="wave"
-                  onChange={e => this.changeWaveType(e.target.value)}
-                >
-                  <option>Sine</option>
-                  <option>Square</option>
-                  <option>Sawtooth</option>
-                  <option>Triangle</option>
-                </select>
-              </div> */}
-
               <div className="select-wrapper">
-                <button
-                  //  type="button"
-                  className="buttons"
-                  onClick={this.generateSeq}
-                >
+                <button className="buttons" onClick={this.generateSeq}>
                   Build Melody
                 </button>
               </div>
@@ -345,17 +277,6 @@ class Sequencer extends Component {
                 </button>
               </div>
 
-              {/* <div className="select-wrapper buttons select">
-                <span>Heat</span>
-                <input
-                  type="number"
-                  min=".5"
-                  max="3"
-                  step=".2"
-                  defaultValue="1.1"
-                  onChange={e => this.handleHeat(e.target.value)}
-                />
-              </div> */}
               <div className="select-wrapper ">
                 <span>Heat</span>
                 <select
@@ -379,36 +300,6 @@ class Sequencer extends Component {
                   <option>2.9</option>
                 </select>
               </div>
-
-              {/* <div className="select-wrapper">
-                <span>Release</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="400"
-                  step="1"
-                  defaultValue={this.state.release}
-                  onChange={e => this.changeRelease(e.target.value)}
-                />
-              </div> */}
-
-              {/* <button
-                type="button"
-                className={cx({ active: this.state.delay })}
-                onClick={() => {
-                  this.setState(
-                    state => ({
-                      delay: !state.delay
-                    }),
-                    () => {
-                      this.pause()
-                      if (this.state.playing) this.play()
-                    }
-                  )
-                }}
-              >
-                Delay
-              </button> */}
             </div>
 
             <ul className="notes">
