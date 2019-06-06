@@ -1,4 +1,5 @@
 import NOTES from "./notes";
+import MNOTES from "./mnotes";
 
 export const getNotesForOctave = octave =>
   Object.keys(NOTES).reduce((state, note) => {
@@ -34,7 +35,8 @@ export const defaultState = {
   delay: false,
   notes: getNotesForOctave(4),
   outOfOctave: [],
-  isInitialized: false
+  isInitialized: false,
+  heat: 1.1
 };
 
 export function swapKeyVal(obj) {
@@ -46,3 +48,35 @@ export function swapKeyVal(obj) {
 }
 
 export let swappedNOTES = swapKeyVal(NOTES);
+
+export let result = [];
+export let seedNotes = [];
+export function recorder(note) {
+  if (result.length < 8) {
+    result.push(note[0]);
+  }
+  if (result.length === 8) {
+    let count = 0;
+    const inPitch = result
+      .map(freq => swappedNOTES[freq])
+      .map(midi => MNOTES[midi]);
+    let notes = inPitch.map(pitch => {
+      if (pitch) {
+        return {
+          pitch: pitch,
+          quantizedStartStep: count,
+          quantizedEndStep: ++count
+        };
+      } else {
+        return {
+          pitch: -1,
+          quantizedStartStep: count,
+          quantizedEndStep: ++count
+        };
+      }
+    });
+    //get rid of rests represented by -1.
+    seedNotes = notes.filter(note => note.pitch !== -1);
+    result = [];
+  }
+}

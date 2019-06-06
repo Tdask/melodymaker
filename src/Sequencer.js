@@ -39,7 +39,6 @@ function recorder(note) {
         };
       }
     });
-
     //get rid of rests represented by -1.
     seedNotes = notes.filter(note => note.pitch !== -1);
     result = [];
@@ -54,8 +53,7 @@ class Sequencer extends Component {
   constructor() {
     super();
     this.state = {
-      ...defaultState,
-      heat: 1.1
+      ...defaultState
     };
     this.generateSeq = this.generateSeq.bind(this);
     this.newView = this.newView.bind(this);
@@ -70,19 +68,22 @@ class Sequencer extends Component {
     this.startUp();
   }
 
-  changeBPM(bpm) {
-    if (bpm > 300 || bpm < 60) return;
-
-    this.setState(
-      () => ({
-        bpm
-      }),
-      () => {
-        this.pause();
-
-        if (this.state.playing) this.play();
-      }
-    );
+  async startUp() {
+    try {
+      await melodyrnn.initialize();
+      this.setState({
+        isInitialized: true
+      });
+      //priming the model to prevent random first output
+      let dummySeq = {
+        totalQuantizedSteps: 4,
+        quantizationInfo: { stepsPerQuarter: 1 },
+        notes: dummyNotes
+      };
+      await melodyrnn.continueSequence(dummySeq, 8, 1.1);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   changeOctave(octave) {
@@ -99,30 +100,33 @@ class Sequencer extends Component {
     );
   }
 
-  newView(resultSeq) {
-    const { notes } = this.state;
-    const pitchLookup = swapKeyVal(MNOTES);
-    let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
-    const midiIndexObj = swapKeyVal(midiNoOctave);
-    let nextView = this.state.pads.slice();
+  play() {
+    this.synth = new Synth();
+    const { bpm, notes, type, release, delay } = this.state;
+    const notesArray = Object.keys(notes).map(key => notes[key]);
+    this.setState(() => ({
+      playing: true
+    }));
 
-    //make a new sequence that can be triggered in time by the steps
-    let seqForGrid = Array(8).fill(null);
-    resultSeq.notes.forEach(
-      note => (seqForGrid[note.quantizedStartStep] = note.pitch)
-    );
-    for (let i = 0; i < this.state.pads.length; i++) {
-      let group = nextView[i];
-      if (seqForGrid[i] !== null) {
-        if (group.includes(1)) {
+    this.interval = setInterval(() => {
+      this.setState(
+        state => ({
+          step: state.step < state.steps - 1 ? state.step + 1 : 0
+        }),
+        () => {
+          const next = this.state.pads[this.state.step]
+            .map((pad, i) => (pad === 1 ? notesArray[i] : null))
+            .filter(x => x);
+          recorder(next);
+          this.synth.playNotes(next, {
+            release,
+            bpm,
+            type,
+            delay
+          });
         }
-        const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
-        let targetIdx = Number(midiIndexObj[midiToToggle]);
-
-        //calling toggle
-        this.togglePad(i, targetIdx);
-      }
-    }
+      );
+    }, (60 * 1000) / this.state.bpm / 2);
   }
 
   async generateSeq() {
@@ -144,37 +148,39 @@ class Sequencer extends Component {
     }
   }
 
-  play() {
-    this.synth = new Synth();
-    const { bpm, notes, type, release, delay } = this.state;
-    const notesArray = Object.keys(notes).map(key => notes[key]);
-    this.setState(() => ({
-      playing: true
-    }));
+  newView(resultSeq) {
+    const { notes } = this.state;
+    const pitchLookup = swapKeyVal(MNOTES);
+    let midiNoOctave = Object.keys(notes).map(note => note.slice(0, -1));
+    const midiIndexObj = swapKeyVal(midiNoOctave);
 
-    this.interval = setInterval(() => {
-      this.setState(
-        state => ({
-          step: state.step < state.steps - 1 ? state.step + 1 : 0
-        }),
-        () => {
-          if (this.state.step === 0) {
-            result = [];
-            seedNotes = [];
-          }
-          const next = this.state.pads[this.state.step]
-            .map((pad, i) => (pad === 1 ? notesArray[i] : null))
-            .filter(x => x);
-          recorder(next);
-          this.synth.playNotes(next, {
-            release,
-            bpm,
-            type,
-            delay
-          });
-        }
-      );
-    }, (60 * 1000) / this.state.bpm / 2);
+    //make a new sequence that can be triggered by grid
+    let seqForGrid = Array(8).fill(null);
+    resultSeq.notes.forEach(
+      note => (seqForGrid[note.quantizedStartStep] = note.pitch)
+    );
+    for (let i = 0; i < this.state.pads.length; i++) {
+      if (seqForGrid[i]) {
+        const midiToToggle = pitchLookup[seqForGrid[i]].slice(0, -1);
+        let targetIdx = Number(midiIndexObj[midiToToggle]);
+
+        //calling toggle
+        this.togglePad(i, targetIdx);
+      }
+    }
+  }
+
+  togglePad(group, pad) {
+    this.setState(state => {
+      const clonedPads = state.pads.slice(0);
+      const padState = clonedPads[group][pad];
+
+      clonedPads[group] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      clonedPads[group][pad] = padState === 1 ? 0 : 1;
+      return {
+        pads: clonedPads
+      };
+    });
   }
 
   pause() {
@@ -194,19 +200,6 @@ class Sequencer extends Component {
     result = [];
   }
 
-  togglePad(group, pad) {
-    this.setState(state => {
-      const clonedPads = state.pads.slice(0);
-      const padState = clonedPads[group][pad];
-
-      clonedPads[group] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-      clonedPads[group][pad] = padState === 1 ? 0 : 1;
-      return {
-        pads: clonedPads
-      };
-    });
-  }
-
   componentWillUnmount() {
     if (this.interval) clearInterval(this.interval);
   }
@@ -222,24 +215,6 @@ class Sequencer extends Component {
       playing: false
     });
     clearInterval(this.interval);
-  }
-
-  async startUp() {
-    try {
-      await melodyrnn.initialize();
-      this.setState({
-        isInitialized: true
-      });
-      //priming the model to prevent random first output
-      let dummySeq = {
-        totalQuantizedSteps: 4,
-        quantizationInfo: { stepsPerQuarter: 1 },
-        notes: dummyNotes
-      };
-      await melodyrnn.continueSequence(dummySeq, 8, 1.1);
-    } catch (error) {
-      console.log(error);
-    }
   }
 
   render() {
