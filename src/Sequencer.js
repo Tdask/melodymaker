@@ -296,9 +296,8 @@ class Sequencer extends Component {
                         active: groupIndex === step,
                         on: pad === 1
                       })}
-                      onClick={event => {
-                        // this.mouseListener(event);
-                        this.togglePad(groupIndex, i, event);
+                      onClick={() => {
+                        this.togglePad(groupIndex, i);
                       }}
                     />
                   ))}
